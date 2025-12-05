@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تتبع الزوار - محمي</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        .login-form {
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: right;
+            display: none;
+        }
+        .info.show {
+            display: block;
+        }
+        .info p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .label {
+            font-weight: bold;
+            color: #333;
+        }
+        .error {
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection">
+            <h1>🔐 دخول محمي</h1>
+            <div class="login-form">
+                <input type="password" id="password" placeholder="أدخل كلمة المرور" onkeypress="if(event.key=='Enter') login()">
+                <br>
+                <button onclick="login()">دخول</button>
+                <p class="error" id="error">كلمة المرور خاطئة!</p>
+            </div>
+        </div>
+
+        <div id="contentSection" class="info">
+            <h1>أهلا وسهلا بك! 👋</h1>
+            <p>شكراً لزيارتك</p>
+            
+            <div class="info show">
+                <p><span class="label">عنوان IP:</span> <span id="ip">جاري التحميل...</span></p>
+                <p><span class="label">الوقت:</span> <span id="time">جاري التحميل...</span></p>
+                <p><span class="label">المتصفح:</span> <span id="browser">جاري التحميل...</span></p>
+                <p><span class="label">النظام:</span> <span id="os">جاري التحميل...</span></p>
+                <p><span class="label">الدولة:</span> <span id="country">جاري التحميل...</span></p>
+            </div>
+            
+            <button onclick="saveData()">حفظ بياناتي</button>
+            <button onclick="logout()">تسجيل الخروج</button>
+        </div>
+    </div>
+
+    <script>
+        const CORRECT_PASSWORD = "123456"; // غيّر هذا!
+
+        function login() {
+            const password = document.getElementById('password').value;
+            
+            if (password === CORRECT_PASSWORD) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('contentSection').style.display = 'block';
+                getVisitorInfo();
+            } else {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function logout() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('contentSection').style.display = 'none';
+            document.getElementById('password').value = '';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // الحصول على معلومات الزائر
+        async function getVisitorInfo() {
+            try {
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                document.getElementById('ip').textContent = ipData.ip;
+                
+                const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
+                const geoData = await geoResponse.json();
+                document.getElementById('country').textContent = geoData.country_name || 'Unknown';
+                
+            } catch (error) {
+                document.getElementById('ip').textContent = 'Unable to fetch';
+                console.log(error);
+            }
+            
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleString('ar-EG');
+            
+            const ua = navigator.userAgent;
+            document.getElementById('browser').textContent = getBrowserInfo(ua);
+            document.getElementById('os').textContent = getOS(ua);
+        }
+        
+        function getBrowserInfo(ua) {
+            if (ua.indexOf('Firefox') > -1) return 'Firefox';
+            if (ua.indexOf('Chrome') > -1) return 'Chrome';
+            if (ua.indexOf('Safari') > -1) return 'Safari';
+            if (ua.indexOf('Edge') > -1) return 'Edge';
+            return 'Unknown';
+        }
+        
+        function getOS(ua) {
+            if (ua.indexOf('Windows') > -1) return 'Windows';
+            if (ua.indexOf('Mac') > -1) return 'macOS';
+            if (ua.indexOf('Linux') > -1) return 'Linux';
+            if (ua.indexOf('Android') > -1) return 'Android';
+            if (ua.indexOf('iPhone') > -1) return 'iOS';
+            return 'Unknown';
+        }
+        
+        function saveData() {
+            const data = {
+                ip: document.getElementById('ip').textContent,
+                time: document.getElementById('time').textContent,
+                browser: document.getElementById('browser').textContent,
+                os: document.getElementById('os').textContent,
+                country: document.getElementById('country').textContent
+            };
+            
+            let visitors = JSON.parse(localStorage.getItem('visitors') || '[]');
+            visitors.push(data);
+            localStorage.setItem('visitors', JSON.stringify(visitors));
+            
+            alert('تم حفظ بياناتك بنجاح!');
+        }
+    </script>
+</body>
+</html>
